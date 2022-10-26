@@ -14,6 +14,7 @@ class	Config
 
 		
 	public:
+		Config();
 		Config(ft::Config &config);
 		Config(std::string &confPath);
 		std::string readFile(std::string &confPath);

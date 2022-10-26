@@ -4,7 +4,7 @@ NAME:= webserv
 
 CFLAGS+= -Wall -Werror -Wextra -std=c++98
 
-SRC= $(addprefix src/, main.cpp Server.cpp Client.cpp Config.cpp Request.cpp Response.cpp Config.cpp)
+SRC= $(addprefix src/, main.cpp Server.cpp Client.cpp Config.cpp Request.cpp Response.cpp)
 
 $(NAME): $(SRC) | silence
 	$(CC) $^ $(CFLAGS) -o $@

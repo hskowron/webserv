@@ -23,4 +23,64 @@ Request::Request()
 	_envVar["SERVER_SOFTWARE"];
 	_envVar["CONNECTIONS"];
 }
+
+Request::~Request()
+{
+	
+}
+
+Request::container	&Request::getEnv()
+{
+	return (_envVar);
+}
+
+Request::container	&Request::getRequest()
+{
+	return (_request);
+}
+
+std::string	&Request::getBody()
+{
+	return (_body);
+}
+
+void	Request::parseReq(std::string req)
+{
+	if (req.empty())
+		throw (std::runtime_error("error: Client request empty"));
+	for (std::string::iterator	it = req.begin(); it != req.end(); it = req.begin() + (1 + req.find_first_of('\n', std::distance(req.begin(), it))))
+	{
+		if (it == req.begin())
+			_request["status"] = req.substr(0, req.find_first_of('\r'));
+		else if (*it == '\r')
+		{
+			if (it + 2 != req.end())
+			{
+				int bod = std::distance(req.begin(), it + 2);
+				_body = req.substr(bod, req.size() - bod);
+			}
+			break ;
+		}
+		else
+		{
+			int	dist = std::distance(req.begin(), it);
+			_request[req.substr(dist, req.find_first_of(':', dist) - dist)] = req.substr(req.find_first_of(' ', dist) + 1, req.find_first_of('\r', dist) - req.find_first_of(' ', dist));
+		}
+	}
+}
+
+char	**Request::convertEnv()
+{
+	std::vector<char *>	ret;
+	std::string			tmp;
+	char				*tmp2;
+
+	for (container::iterator it = _envVar.begin(); it != _envVar.end(); it++)
+	{
+		tmp = it->first + "=" + it->second;
+		std::strcpy(tmp2, tmp.c_str());
+		ret.push_back(tmp2);
+	}
+	return (&ret[0]);
+}
 }

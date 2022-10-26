@@ -2,6 +2,11 @@
 
 namespace ft
 {
+	Config::Config()
+	{
+		
+	}
+
 	Config::Config(std::string &confPath)
 	{
 		this->_confFile = readFile(confPath);

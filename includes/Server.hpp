@@ -45,7 +45,7 @@ namespace ft
 			std::vector<struct pollfd>				_pollfds;
 
 		public:
-			Server(ft::Config &config);
+			Server(ft::Config &conf);
 			~Server();
 
 			std::map<int, Client>			&getClLst();

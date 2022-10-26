@@ -3,6 +3,7 @@
 
 # include <iostream>
 # include <map>
+# include <exception>
 # include "Server.hpp"
 # include "Client.hpp"
 
@@ -10,15 +11,28 @@ namespace ft
 {
 class Request
 {
-	typedef	std::map<std::string, std::string>	container;
-	typedef	container::iterator					iterator;
+	friend class Response;
+
+	public:
+		typedef	std::map<std::string, std::string>	container;
+		typedef	container::iterator					iterator;
 
 	private:
 		container	_envVar;
+		container	_request;
+		std::string	_body;
 
 	public:
 		Request();
 		~Request();
+
+		container	&getEnv();
+		container	&getRequest();
+		std::string	&getBody();
+
+		void		parseReq(std::string req);
+		void		fillEnv();
+		char		**convertEnv();
 };
 };
 

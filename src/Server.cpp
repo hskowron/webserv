@@ -41,7 +41,7 @@ void	ServerBlock::startListening(int sockfd)
 
 //	Server start
 
-Server::Server(ft::Config &config): _config(config)
+Server::Server(ft::Config &conf) : _config(conf)
 {
 	_nmbpollfds = 0;
 	std::vector<int>	test;
