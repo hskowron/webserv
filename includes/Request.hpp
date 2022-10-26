@@ -19,7 +19,7 @@ class Request
 
 	private:
 		container	_envVar;
-		container	_request;
+		container	_reqHead;
 		std::string	_body;
 
 	public:

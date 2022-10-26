@@ -51,8 +51,7 @@ int main(int argc, char **argv)
 						if (isServer == false)
 						{
 							ft::Client		&tmp = server.getClLst().find(server.getPollfds()[x].fd)->second;
-							ft::Response	resp(tmp);
-							resp.cgi();
+							ft::Response	resp(tmp, server.getBlocks());
 							// std::cout << "fd: " << tmp.getSockfd() << "	tmp revent: " << server.getPollfds()[x].revents << std::endl;
 							// std::cout << "revent: " << server.getPollfds()[x].revents << std::endl;
 							
@@ -64,7 +63,7 @@ int main(int argc, char **argv)
 	}
 	catch (std::exception &e)
 	{
-		std::cout << e.what() << std::endl;
+		std::cerr << e.what() << std::endl;
 	}
 	return (0);
 }

@@ -2,7 +2,7 @@
 
 namespace ft
 {
-Response::Response(ft::Client &client) : _client(client)
+Response::Response(ft::Client const &client, ft::Server::blockmap const &blocks) : _client(client)
 {
 	_http = "HTTP/1.1";
 	std::string	buf;
@@ -11,6 +11,10 @@ Response::Response(ft::Client &client) : _client(client)
 		std::cout << "error: recv from client fd: " << _client.getSockfd() << "  port: " << _client.getPort() << std::endl;
 	_request.parseReq(buf);
 	std::cout << "\033[33m		Receiving data from client on port: " << _client.getPort() << " (client fd: " << _client.getSockfd() << ")\033[0m" << std::endl;
+	_block = findBlock(blocks);
+	setCode(cgi());
+	createHeader();
+	respond();
 }
 
 Response::~Response()
@@ -18,7 +22,7 @@ Response::~Response()
 
 }
 
-void	Response::setCode(std::string code)
+void	Response::setCode(std::string const &code)
 {
 	_resCode = code;
 	CodeCont::iterator	it = _codeList.find(code);
@@ -29,26 +33,12 @@ void	Response::setCode(std::string code)
 
 void	Response::initCode()
 {
-	_codeList["200"] = "OK";
-	_codeList["404"] = "Not found";
+	_codeList["200"] = "OK\r\n";
+	_codeList["404"] = "Not found\r\n";
+	_codeList["500"] = "Internal Server Error\r\n";
 }
 
-std::string	Response::methodGet()
-{
-	return ("200");
-}
-
-std::string	Response::methodPost()
-{
-	retun ()
-}
-
-std::string	Response::methodDelete()
-{
-
-}
-
-void	Response::cgi()
+std::string	Response::cgi()
 {
 	// static int x = 1;
 	
@@ -60,12 +50,9 @@ void	Response::cgi()
 	// for (ft::Request::iterator it = _request.getRequest().begin(); it != _request.getRequest().end(); it++)
 	// 	std::cout << it->first << " = " << it->second << std::endl;
 	// std::cout << _request.getBody() << std::endl;
-	if (!buf.empty() && buf.find("GET / HTTP/1.1") != std::string::npos)
-	{
-		std::cout << "\033[33m		Sending response to client on port: " << _client.getPort() << " (client fd: " << _client.getSockfd() << ")\033[0m" << std::endl;
-		_client.sendTo("HTTP/1.1 200 OK\r\n");
+	
 		char arg[] = {"index.php"};
-		char arg2[] = {"php-cgi"};
+		char arg2[] = {"php-cgi-fail"};
 		char earg6[] = "CONNECTIONS=";
 		// std::string teststr = "CONNECTIONS=" + std::to_string(5);
 		// x++;
@@ -88,45 +75,109 @@ void	Response::cgi()
 		_env[5] = earg6;
 		_env[6] = NULL;
 
-		int p[2];
-		pipe(p);
+		int pip[2];
+		pipe(pip);
+		
+		// std::vector<char *>	_env;
+		// std::string			tmp;
+		// char				*tmp2 = NULL;
 
+		// for (Request::container::iterator it = _request._envVar.begin(); it != _request._envVar.end(); it++)
+		// {
+		// 	tmp = it->first + "=" + it->second;
+		// 	std::strcpy(tmp2, tmp.c_str());
+		// 	_env.push_back(tmp2);
+		// }
+
+		int	*status;
 		int pid = fork();
 		if (pid == 0)
 		{
-			close(p[0]);
-			dup2(p[1], STDOUT_FILENO);
-			close(p[1]);
-			if (execve("cgi-bin/php-cgi", exearg, _env) != 0)
-			{
-				perror("failed: ");
-				exit(1);
-			}
-			exit(1);
+			close(pip[0]);
+			dup2(pip[1], STDOUT_FILENO);
+			close(pip[1]);
+			if (execve("cgi-bin/php-cgi-fail", exearg, _env) != 0)
+				exit(-1);
 		}
 		else
 		{
-			close(p[1]);
-			waitpid(pid, NULL, 0);
+			close(pip[1]);
+			waitpid(pid, status, 0);
+			if (WEXITSTATUS(status) == -1)
+			{
+				std::cout << "\033[1;31mFailed to execute CGI script\033[0m" << std::endl;
+				return ("500");
+			}
 		}
 		char buf2[1000];
-		int ret = read(p[0], buf2, 999);
-		close(p[0]);
-		std::string text(buf2, ret);
-		std::string subtext(text.substr(text.find_first_of("<")));
+		int ret = read(pip[0], buf2, 999);
+		close(pip[0]);
+		std::string response(buf2, ret);
+		_cgiResponse = response;
+		return ("200");
+}
 
-		// std::cout << "html:" << std::endl << text << std::endl << "html end" << std::endl;
-
-		_client.sendTo("Content-Length: " + std::to_string(subtext.size()) + "\r\n");
-		_client.sendTo(text);
-		_client.sendTo("\r\n");
-	}
-	else if (!buf.empty() && buf.find("GET /favicon.ico HTTP/1.1") != std::string::npos)
+void	Response::respond()
+{
+	if (_request._reqHead["status"].find("favicon") != std::string::npos)	// temporär, eigentlich sollten die nach GET, POST und DELETE checken
 	{
 		std::cout << "\033[33m		Sending response favicon to client on port: " << _client.getPort() << " (client fd: " << _client.getSockfd() << ")\033[0m" << std::endl;
 		_client.sendTo("HTTP/1.1 404 Not Found\r\n");
 		_client.sendTo("Content-Length: 0\r\n");
 		_client.sendTo("\r\n");
 	}
+	else
+	{
+		std::cout << "\033[33m		Sending response to client on port: " << _client.getPort() << " (client fd: " << _client.getSockfd() << ")\033[0m" << std::endl;
+		std::string fullresponse;
+		fullresponse =	_http + " " + _resCode + " " + _resString + _header + _cgiResponse;
+		_client.sendTo(fullresponse);
+	}
+}
+
+bool	Response::findName(std::vector<std::string> const &names)
+{
+	std::string	tmp = _request._reqHead.find("Host")->second;
+	std::string tar = tmp.substr(0, tmp.find_first_of(':'));
+	for (std::vector<std::string>::const_iterator it = names.begin(); it != names.end(); it++)
+	{
+		if (*it == tar)
+		{
+			std::cout << "		\033[33mUsing Server Block: \033[1;34m" << tmp << "\033[0m" << std::endl;
+			return (1);
+		}
+	}
+	return (0);
+}
+
+ft::ServerBlock	&Response::findBlock(ft::Server::blockmap const &blocks)
+{
+	for (ft::Server::blockmap::const_iterator it = blocks.begin(); it != blocks.end(); it++)
+	{
+		if (findName(it->second->getName()))
+			return (*(it->second));
+	}
+	std::cout << "		\033[33mUsing default Server Block\033[0m" << std::endl;
+	return (*(blocks.begin()->second));	// sollte den default server returnen, also den obersten im config file, müssen wir am besten mit ner flag machen glaub ich
+}
+
+void	Response::createHeader()
+{
+	_header += conLenHeader();
+}
+
+std::string	Response::conLenHeader()
+{
+	std::string sub;
+	for (std::string::iterator it = _cgiResponse.begin(); it != _cgiResponse.end(); \
+		it = _cgiResponse.begin() + (1 + _cgiResponse.find_first_of('\n', std::distance(_cgiResponse.begin(), it))))
+	{
+		if (*it == '\r')
+		{
+			sub = _cgiResponse.substr(2 + std::distance(_cgiResponse.begin(), it));
+			break;
+		}
+	}
+	return ("Content-Length: " + std::to_string(sub.size()) + "\r\n");
 }
 };

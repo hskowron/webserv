@@ -19,8 +19,8 @@ Request::Request()
 	_envVar["SCRIPT_NAME"];
 	_envVar["SERVER_NAME"];
 	_envVar["SERVER_PORT"];
-	_envVar["SERVER_PROTOCOL"];
-	_envVar["SERVER_SOFTWARE"];
+	_envVar["SERVER_PROTOCOL"] = "HTTP/1.1";
+	_envVar["SERVER_SOFTWARE"] = "webserv/1.0";
 	_envVar["CONNECTIONS"];
 }
 
@@ -36,7 +36,7 @@ Request::container	&Request::getEnv()
 
 Request::container	&Request::getRequest()
 {
-	return (_request);
+	return (_reqHead);
 }
 
 std::string	&Request::getBody()
@@ -51,7 +51,7 @@ void	Request::parseReq(std::string req)
 	for (std::string::iterator	it = req.begin(); it != req.end(); it = req.begin() + (1 + req.find_first_of('\n', std::distance(req.begin(), it))))
 	{
 		if (it == req.begin())
-			_request["status"] = req.substr(0, req.find_first_of('\r'));
+			_reqHead["status"] = req.substr(0, req.find_first_of('\r'));
 		else if (*it == '\r')
 		{
 			if (it + 2 != req.end())
@@ -64,23 +64,13 @@ void	Request::parseReq(std::string req)
 		else
 		{
 			int	dist = std::distance(req.begin(), it);
-			_request[req.substr(dist, req.find_first_of(':', dist) - dist)] = req.substr(req.find_first_of(' ', dist) + 1, req.find_first_of('\r', dist) - req.find_first_of(' ', dist));
+			_reqHead[req.substr(dist, req.find_first_of(':', dist) - dist)] = req.substr(req.find_first_of(' ', dist) + 1, req.find_first_of('\r', dist) - (req.find_first_of(' ', dist) + 1));
 		}
 	}
 }
 
-char	**Request::convertEnv()
+void	fillEnv()
 {
-	std::vector<char *>	ret;
-	std::string			tmp;
-	char				*tmp2;
 
-	for (container::iterator it = _envVar.begin(); it != _envVar.end(); it++)
-	{
-		tmp = it->first + "=" + it->second;
-		std::strcpy(tmp2, tmp.c_str());
-		ret.push_back(tmp2);
-	}
-	return (&ret[0]);
 }
 }

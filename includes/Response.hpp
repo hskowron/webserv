@@ -6,6 +6,7 @@
 # include <unistd.h>
 # include "Request.hpp"
 # include "Client.hpp"
+# include "Server.hpp"
 
 namespace ft
 {
@@ -15,36 +16,34 @@ class Response
 		typedef std::map<std::string, std::string>	CodeCont;
 
 	private:
-		std::string	_http;
-		std::string	_resCode;
-		std::string _resString;
-		std::string	_header;
-		std::string	_response;
-		ft::Request	_request;
-		CodeCont	_codeList;
-		ft::Client	_client;
+		std::string		_http;
+		std::string		_resCode;
+		std::string 	_resString;
+		std::string		_header;
+		std::string		_cgiResponse;
+		ft::Request		_request;
+		CodeCont		_codeList;
+		ft::Client		_client;
+		ft::ServerBlock	_block;
 
 	public:
-		Response(ft::Client &client);
+		Response(ft::Client const &client, ft::Server::blockmap const &blocks);
 		~Response();
 
-		std::string getHttp() const;
-		std::string getCode() const;
-		std::string getString() const;
-		std::string getResponse() const;
+		void			setHttp(std::string const &http);
+		void			setCode(std::string const &code);
+		void			setResponse(std::string const &response);
 
-		void	setHttp(std::string http);
-		void	setCode(std::string code);
-		void	setResponse(std::string response);
+		std::string		cgi();
+		void			respond();
+		void			initCode();
+		ft::ServerBlock	&findBlock(ft::Server::blockmap	const &blocks);
+		bool			findName(std::vector<std::string> const &names);
+		void			createHeader();
+		std::string		conLenHeader();
 
-		std::string	methodGet();
-		std::string	methodPost();
-		std::string	methodDelete();
-
-		void	cgi();
-		void	initCode();
-
-		std::string	findString();
+		std::string		findString();
+		std::string		&formResponse();
 };
 };
 

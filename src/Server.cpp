@@ -29,6 +29,10 @@ ServerBlock::ServerBlock(std::vector<int> &ports, std::map<int, int> *portSocks)
 	}
 }
 
+ServerBlock::ServerBlock()
+{
+}
+
 ServerBlock::~ServerBlock()
 {
 }
@@ -37,6 +41,11 @@ void	ServerBlock::startListening(int sockfd)
 {
 	if (listen(sockfd, 10) == -1)
 		throw std::runtime_error("Failed to start listening.");
+}
+
+std::vector<std::string>	&ServerBlock::getName()
+{
+	return (_name);
 }
 
 //	Server start
@@ -51,13 +60,13 @@ Server::Server(ft::Config &conf) : _config(conf)
 	// while (parsing)
 	// {
 
-		ServerBlock	testblock(test, &_portSocks);
+		ServerBlock	*testblock = new ServerBlock(test, &_portSocks);
 		//	weitere config parsen und in block speichern
-		testblock._name.push_back("localhost");
-		testblock._name.push_back("www.localhost");
+		testblock->_name.push_back("localhost");
+		testblock->_name.push_back("www.localhost");
 		for (std::vector<int>::iterator vit = test.begin(); vit != test.end(); vit++)
 		{
-			_blocks.insert(std::make_pair<int, ServerBlock*>(*vit, &testblock)); 
+			_blocks.insert(std::make_pair<int, ServerBlock*>(*vit, testblock)); 
 		}
 	// }
 
@@ -83,6 +92,7 @@ Server::Server(ft::Config &conf) : _config(conf)
 
 Server::~Server()
 {
+	delete _blocks.find(8000)->second;
 	/*
 	**	free clientList
 	*/
@@ -133,9 +143,9 @@ void	Server::setClLst(std::map<int, Client> ClLst)
 	_clients = ClLst;
 }
 
-std::map<int, ft::ServerBlock>	Server::parsing(std::string confFile)
+Server::blockmap	Server::parsing(std::string confFile)
 {
-	std::map<int, ft::ServerBlock> blocks;
+	Server::blockmap blocks;
 	if (!check_confFile(confFile))
 		throw std::runtime_error("invalid config_file");
 	return (blocks);
@@ -193,4 +203,10 @@ Server::PSiterator	Server::getPortSockEnd()
 {
 	return (_portSocks.end());
 }
+
+Server::blockmap	&Server::getBlocks()
+{
+	return (_blocks);
+}
+
 };

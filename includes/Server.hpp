@@ -26,36 +26,42 @@ namespace ft
 
 		public:
 			ServerBlock(std::vector<int> &ports, std::map<int, int> *portSocks);
+			ServerBlock();
 			~ServerBlock();
 
-			void	startListening(int sockfd);
+			void						startListening(int sockfd);
+			std::vector<std::string>	&getName();
 	};
 
 	class Server
 	{
 		public:
-			typedef	std::map<int, int>::iterator	PSiterator;
+			typedef	std::multimap<int, ft::ServerBlock*>	blockmap;
+			typedef	std::map<int, int>						intmap;
+			typedef	intmap::iterator						PSiterator;
+			typedef	std::map<int, Client>					clientmap;
 
 		private:
-			ft::Config								_config;
-			std::multimap<int, ft::ServerBlock*>	_blocks;
-			std::map<int, int>						_portSocks;
-			int										_nmbpollfds;
-			std::map<int, Client>					_clients;
-			std::vector<struct pollfd>				_pollfds;
+			ft::Config					_config;
+			blockmap					_blocks;
+			intmap						_portSocks;
+			int							_nmbpollfds;
+			clientmap					_clients;
+			std::vector<struct pollfd>	_pollfds;
 
 		public:
 			Server(ft::Config &conf);
 			~Server();
 
-			std::map<int, Client>			&getClLst();
+			clientmap						&getClLst();
 			const int						&getNmbUser() const;
 			const int						&getNmbPollfds() const;
 			struct pollfd					*getPollfds();
 			PSiterator						getPortSockIt();
 			PSiterator						getPortSockEnd();
+			blockmap						&getBlocks();
 
-			std::map<int, ft::ServerBlock>	parsing(std::string confFile);
+			blockmap						parsing(std::string confFile);
 			bool							check_confFile(std::string confFile);
 			void							expandPollfds(int fd);
 			void							deletePollfd(struct pollfd &pfd);
